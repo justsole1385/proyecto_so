@@ -1,2 +1,8 @@
-# proyecto_so
-Proyecto SO DV-JS
+# Proyecto de UCOM 418 - Sistemas Operativos (Paralelo 81)
+
+# Descripción
+Proyecto Final de la materia UCOM 418 - Sistemas Operativos (Paralelo 81)
+
+# Integrantes del grupo
+* Daniel Vaca
+* Justin Soledispa
