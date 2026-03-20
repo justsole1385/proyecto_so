@@ -24,7 +24,8 @@ def main():
     for h in hilos: h.start()
     for h in hilos: h.join()
     
-    sala.mostrar_estado_sala()import threading
+    sala.mostrar_estado_sala()
+import threading
 from cine_backend import SalaCine
 from usuario import Usuario
 
