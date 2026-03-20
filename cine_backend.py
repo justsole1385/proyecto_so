@@ -1,6 +1,15 @@
 import threading
 import time
 import random as rd
+import logging  # Importamo el módulo para la bitácora
+
+# Configuración de la bitácora se crea el archivo físico 'bitácora.log'
+logging.basicConfig(
+    filename='bitácora.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 class Asiento:
     def __init__(self, id_asiento):
@@ -29,9 +38,17 @@ class SalaCine:
                 self.mapa_asientos[id_asiento] = Asiento(id_asiento)
 
     def reservar_asiento(self, id_asiento, nombre_usuario):
+        # Registro del intento de reserva 
+        logging.info(f"[SOLICITUD] {nombre_usuario} intenta reservar el asiento {id_asiento}.")
+        
         with self.candado: 
+            # Registro de entrada a sección crítica
+            logging.info(f"[ENTRADA] {nombre_usuario} entró a la sección crítica (adquirió Mutex).")
+            
             if id_asiento not in self.mapa_asientos:
-                return False, f"Error: El asiento {id_asiento} no existe."
+                logging.error(f"[ERROR] {nombre_usuario}: Asiento {id_asiento} no existe.")
+                return False
+            
             asiento = self.mapa_asientos[id_asiento]
 
             if asiento.libre:
@@ -39,12 +56,21 @@ class SalaCine:
                 asiento.libre = False
                 asiento.dueno = nombre_usuario
                 self.asientos_disponibles -= 1
+
+                # Registro del éxito en hacer la reserva
+                logging.info(f"[ÉXITO] {nombre_usuario} reservó el asiento {id_asiento}.")
+
                 print(f"Éxito: {nombre_usuario} reservó el asiento {id_asiento}.")
-                return True
+                res= True
             else:
+                # Registro del fallo
+                logging.warning(f"[RECHAZADO] {nombre_usuario}: {id_asiento} ya ocupado por {asiento.dueno}.")
                 print(f"Rechazado: {nombre_usuario} intentó reservar {id_asiento}, pero ya es de {asiento.dueno}.")
-                return False
-            
+                res= False
+        
+        # Registro: Salida de sección crítica
+        logging.info(f"[LIBERACIÓN] {nombre_usuario} salió de la sección crítica y liberó el Mutex.")
+        return res
 
     def mostrar_estado_sala(self):
         print(f"\n-ESTADO FINAL: {self.pelicula} ---")
