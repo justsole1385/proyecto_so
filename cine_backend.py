@@ -1,9 +1,9 @@
 import threading
 import time
 import random as rd
-import logging  # Importamo el módulo para la bitácora
+import logging
 
-# Configuración de la bitácora se crea el archivo físico 'bitácora.log'
+# Configuración de la bitácora
 logging.basicConfig(
     filename='bitácora.log',
     level=logging.INFO,
@@ -17,15 +17,9 @@ class Asiento:
         self.libre = True
         self.dueno = None
 
-    def __str__(self):
-        if self.libre:
-            return f"[{self.id_asiento}: Libre]"
-        else:
-            return f"[{self.id_asiento}: Ocupado por {self.dueno}]"
-
-class SalaCine:
-    def __init__(self, pelicula, filas, asientos_por_fila):
-        self.pelicula = pelicula
+class FuncionCine:
+    def __init__(self, nombre_funcion, filas, asientos_por_fila):
+        self.nombre_funcion = nombre_funcion
         self.asientos_disponibles = filas * asientos_por_fila 
         self.mapa_asientos = {} 
         self.candado = threading.Lock()
@@ -37,44 +31,40 @@ class SalaCine:
                 id_asiento = f"{letra}{j}"
                 self.mapa_asientos[id_asiento] = Asiento(id_asiento)
 
-    def reservar_asiento(self, id_asiento, nombre_usuario):
-        # Registro del intento de reserva 
-        logging.info(f"[SOLICITUD] {nombre_usuario} intenta reservar el asiento {id_asiento}.")
-        
+    def intentar_reservar(self, id_asiento, nombre_usuario):
+        # El Mutex SOLO  lo usamos para verificar y cambiar el estado rápidamente
         with self.candado: 
-            # Registro de entrada a sección crítica
-            logging.info(f"[ENTRADA] {nombre_usuario} entró a la sección crítica (adquirió Mutex).")
-            
-            if id_asiento not in self.mapa_asientos:
-                logging.error(f"[ERROR] {nombre_usuario}: Asiento {id_asiento} no existe.")
-                return False
-            
-            asiento = self.mapa_asientos[id_asiento]
-
-            if asiento.libre:
-                time.sleep(rd.randint(1,5)) 
+            asiento = self.mapa_asientos.get(id_asiento)
+            if asiento and asiento.libre:
                 asiento.libre = False
                 asiento.dueno = nombre_usuario
                 self.asientos_disponibles -= 1
+                logging.info(f"[{self.nombre_funcion}] {nombre_usuario} reservó el {id_asiento}.")
+                return True
+            return False
 
-                # Registro del éxito en hacer la reserva
-                logging.info(f"[ÉXITO] {nombre_usuario} reservó el asiento {id_asiento}.")
+    def liberar_asiento(self, id_asiento, nombre_usuario):
+        # Mutex para liberar el recurso de forma segura
+        with self.candado:
+            asiento = self.mapa_asientos.get(id_asiento)
+            if asiento and not asiento.libre and asiento.dueno == nombre_usuario:
+                asiento.libre = True
+                asiento.dueno = None
+                self.asientos_disponibles += 1
+                logging.info(f"[{self.nombre_funcion}] {nombre_usuario} liberó el {id_asiento}.")
 
-                print(f"Éxito: {nombre_usuario} reservó el asiento {id_asiento}.")
-                res= True
-            else:
-                # Registro del fallo
-                logging.warning(f"[RECHAZADO] {nombre_usuario}: {id_asiento} ya ocupado por {asiento.dueno}.")
-                print(f"Rechazado: {nombre_usuario} intentó reservar {id_asiento}, pero ya es de {asiento.dueno}.")
-                res= False
-        
-        # Registro: Salida de sección crítica
-        logging.info(f"[LIBERACIÓN] {nombre_usuario} salió de la sección crítica y liberó el Mutex.")
-        return res
+    def esta_llena(self):
+        with self.candado:
+            return self.asientos_disponibles == 0
 
-    def mostrar_estado_sala(self):
-        print(f"\n-ESTADO FINAL: {self.pelicula} ---")
-        print(f"Asientos restantes: {self.asientos_disponibles}")
-        for id_asiento, asiento in self.mapa_asientos.items():
-            print(asiento)
-        print("---------------------------------------\n")
+    def obtener_asiento_aleatorio(self):
+        return rd.choice(list(self.mapa_asientos.keys()))
+
+class CineCentral:
+    def __init__(self):
+        # Creamos dos funciones pequeñas en distitnso horarios de 4 asientos cada una 
+        # para forzar que así se llenen rápido
+        self.funciones = [
+            FuncionCine("Función 14:00 (Sala 1)", filas=2, asientos_por_fila=2),
+            FuncionCine("Función 16:00 (Sala 2)", filas=2, asientos_por_fila=2)
+        ]

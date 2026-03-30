@@ -1,54 +1,27 @@
-import threading
-from cine_backend import SalaCine
+from cine_backend import CineCentral
 from usuario import Usuario
 
 def main():
-    print("\n--- CONFIGURACIÓN DE LA SIMULACIÓN ---")
-    pelicula = input("Nombre de la película: ")
-    sala = SalaCine(pelicula=pelicula, filas=3, asientos_por_fila=3)
+    print("\n--- INICIANDO SIMULACIÓN CONCURRENTE AUTOMÁTICA ---")
+    cine = CineCentral()
     
-    try:
-        cant = int(input("¿Cuántos usuarios intentarán reservar? "))
-    except ValueError:
-        print("Error: Ingrese un número válido.")
-        return
-
+    # Lanzamos 12 usuarios para solo 8 asientos totales (4 por función). 
+    # Esto garantiza que habrá asincronía, rebosamiento y exclusión mutua.
+    cant_usuarios = 12 
     hilos = []
-    for i in range(cant):
-        print(f"\nDatos del usuario {i+1}:")
-        nombre = input("Nombre: ")
-        asiento = input("Asiento (Ej: A1, B2): ").upper()
-        hilos.append(Usuario(nombre=nombre, asiento_deseado=asiento, sala=sala))
     
-    print("\n--- INICIANDO RESERVAS SIMULTÁNEAS ---")
-    for h in hilos: h.start()
-    for h in hilos: h.join()
+    for i in range(cant_usuarios):
+        hilos.append(Usuario(nombre=f"Cliente-{i+1}", cine=cine))
     
-    sala.mostrar_estado_sala()
-import threading
-from cine_backend import SalaCine
-from usuario import Usuario
+    print("Abriendo las puertas del cine...\n")
+    
+    for h in hilos: 
+        h.start()
+        
+    for h in hilos: 
+        h.join()
+        
+    print("\n--- SIMULACIÓN FINALIZADA ---")
 
-def main():
-    print("\n--- CONFIGURACIÓN DE LA SIMULACIÓN ---")
-    pelicula = input("Nombre de la película: ")
-    sala = SalaCine(pelicula=pelicula, filas=3, asientos_por_fila=3)
-    
-    try:
-        cant = int(input("¿Cuántos usuarios intentarán reservar? "))
-    except ValueError:
-        print("Error: Ingrese un número válido.")
-        return
-
-    hilos = []
-    for i in range(cant):
-        print(f"\nDatos del usuario {i+1}:")
-        nombre = input("Nombre: ")
-        asiento = input("Asiento (Ej: A1, B2): ").upper()
-        hilos.append(Usuario(nombre=nombre, asiento_deseado=asiento, sala=sala))
-    
-    print("\n--- INICIANDO RESERVAS SIMULTÁNEAS ---")
-    for h in hilos: h.start()
-    for h in hilos: h.join()
-    
-    sala.mostrar_estado_sala()
+if __name__ == "__main__":
+    main()
