@@ -37,7 +37,6 @@ class Usuario(threading.Thread):
             self.veces_entrado += 1
             self.log(f"[ASIGNACION] {self.nombre} ocupo el Asiento {asiento_idx + 1} (Visita #{self.veces_entrado}).")
 
-            #  ¿Ira al bano (I/O) o consumira todo el Quantum?
             va_al_bano = rd.random() < 0.5 # 50% de probabilidad de interrupcion voluntaria
             
             if va_al_bano:

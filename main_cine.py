@@ -31,7 +31,6 @@ def main():
         hilo = Usuario(nombre=nombre, cine=cine)
         hilos.append(hilo)
         hilo.start()
-        # micro-delay para garantizar que lleguen exactamente en el orden de la lista
         time.sleep(0.05) 
         
     for h in hilos:
