@@ -63,7 +63,7 @@ class Usuario(threading.Thread):
 
             # Procesamiento de la salida
             if va_al_bano:
-                self.log(f"[I/O WAIT] {self.nombre} se levanto al bano. Libero Asiento {asiento_idx + 1}. Vio: {minutos_reales_vistos} min.")
+                self.log(f"[I/O] {self.nombre} se levanto al bano. Libero Asiento {asiento_idx + 1}. Vio: {minutos_reales_vistos} min.")
                 tiempo_bano = rd.randint(5, 15)
                 for _ in range(tiempo_bano):
                     if self.cine.reloj.pelicula_terminada.is_set():

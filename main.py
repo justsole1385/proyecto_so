@@ -1,57 +1,31 @@
-import time
-import logging
-from cine_backend import CineCentral, RelojGlobal
-from usuario import Usuario
+import main_cine
+from info_estudiantes import nombres_estudiantes
+from info_proyecto import descripcion_proyecto
+
+def mostrar_menu():
+    print("\n" + "="*30)
+    print("      SISTEMA DE CINE")
+    print("="*30)
+    print("1. Ver Integrantes")
+    print("2. Ver Detalles del Proyecto")
+    print("3. EJECUTAR SIMULACIÓN ")
+    print("4. Salir")
+    return input("Seleccione una opción: ")
 
 def main():
-    print("\n========================================================")
-    print("   SIMULADOR DE CINE")
-    print("========================================================\n")
-    
-    # Limpiamos el archivo de bitacora anterior
-    with open('bitacora.log', 'w') as f:
-        f.write("--- INICIO DE TRAZABILIDAD DEL SISTEMA ---\n")
-
-    duracion_pelicula = 225
-    reloj = RelojGlobal(duracion_pelicula)
-    cine = CineCentral(reloj)
-    
-    amigos = [
-        "Paula", "Leonor", "Juan Diego", "Justin", 
-        "Daniel", "Raul", "Karel", "Jeremy", 
-        "Sebastian", "Carlos", "Christian", "Xavier"
-    ]
-    
-    print(f"[SISTEMA] Iniciando proyeccion. Duracion total: {duracion_pelicula} minutos.")
-    print(f"[SISTEMA] Quantum establecido: 20 minutos.")
-    print("[SISTEMA] Iniciando reloj...\n")
-    
-    reloj.iniciar()
-    
-    hilos = []
-    for nombre in amigos:
-        hilo = Usuario(nombre=nombre, cine=cine)
-        hilos.append(hilo)
-        hilo.start()
-        # Un micro-delay para garantizar que lleguen exactamente en el orden de la lista
-        time.sleep(0.05) 
-        
-    for h in hilos:
-        h.join()
-        
-    print("\n========================================================")
-    print("   RANKING FINAL DE MINUTOS VISTOS")
-    print("========================================================")
-    
-    logging.info("\n--- RESUMEN  ---")
-    
-    # Ordenamiento de hilos basandose en la propiedad tiempo_visto
-    hilos.sort(key=lambda x: x.tiempo_visto, reverse=True)
-    
-    for rank, usuario in enumerate(hilos, 1):
-        resultado = f"{rank}. {usuario.nombre:15} | Total visto: {usuario.tiempo_visto:3} min | Entradas a sala: {usuario.veces_entrado}"
-        print(resultado)
-        logging.info(resultado)
+    while True:
+        opcion = mostrar_menu()
+        if opcion == "1":
+            nombres_estudiantes()
+        elif opcion == "2":
+            descripcion_proyecto()
+        elif opcion == "3":
+            main_cine.main()
+        elif opcion == "4":
+            print("Saliendo del sistema...")
+            break
+        else:
+            print("Opción no válida, intente de nuevo.")
 
 if __name__ == "__main__":
     main()
