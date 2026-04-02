@@ -1,27 +1,54 @@
-from cine_backend import CineCentral
+import time
+import logging
+from cine_backend import CineCentral, RelojGlobal
 from usuario import Usuario
+from operator import attrgetter
 
 def main():
-    print("\n--- INICIANDO SIMULACIÓN CONCURRENTE AUTOMÁTICA ---")
-    cine = CineCentral()
+    print("\n========================================================")
+    print("                  SIMULACIÓN DE CINE            ")
+    print("========================================================\n")
     
-    # Lanzamos 12 usuarios para solo 8 asientos totales (4 por función). 
-    # Esto garantiza que habrá asincronía, rebosamiento y exclusión mutua.
-    cant_usuarios = 12 
+    # Limpiamos el archivo de bitacora anterior
+    with open('bitacora.log', 'w') as f:
+        f.write("--- INICIO DE LOS REGISTROS DEL SISTEMA ---\n")
+
+    duracion_pelicula = 225
+    reloj = RelojGlobal(duracion_pelicula)
+    cine = CineCentral(reloj)
+    
+    amigos = [
+        "Paula", "Leonor", "Juan Diego", "Justin", "Daniel", "Raul", "Karel", "Jeremy", "Sebastian", "Carlos", "Christian", "Xavier"]
+    
+    print(f"[SISTEMA] Iniciando proyeccion. Duracion total: {duracion_pelicula} minutos.")
+    print(f"[SISTEMA] Quantum establecido: 20 minutos.")
+    print("[SISTEMA] Iniciando reloj...\n")
+    
+    reloj.iniciar()
+    
     hilos = []
-    
-    for i in range(cant_usuarios):
-        hilos.append(Usuario(nombre=f"Cliente-{i+1}", cine=cine))
-    
-    print("Abriendo las puertas del cine...\n")
-    
-    for h in hilos: 
-        h.start()
+    for nombre in amigos:
+        hilo = Usuario(nombre=nombre, cine=cine)
+        hilos.append(hilo)
+        hilo.start()
+        time.sleep(0.05) 
         
-    for h in hilos: 
+    for h in hilos:
         h.join()
         
-    print("\n--- SIMULACIÓN FINALIZADA ---")
+    print("\n========================================================")
+    print("   RANKING FINAL DE MINUTOS VISTOS")
+    print("========================================================")
+    
+    logging.info("\n--- RESUMEN  ---")
+    
+    # Ordenamiento de hilos 
+    hilos.sort(key=attrgetter('tiempo_visto'), reverse=True)
+    
+    for rank, usuario in enumerate(hilos, 1):
+        resultado = f"{rank}. {usuario.nombre:15} | Total visto: {usuario.tiempo_visto:3} min | Entradas a sala: {usuario.veces_entrado}"
+        print(resultado)
+        logging.info(resultado)
 
 if __name__ == "__main__":
     main()

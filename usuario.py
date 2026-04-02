@@ -1,45 +1,75 @@
 import threading
 import time
 import random as rd
+import logging
 
 class Usuario(threading.Thread):
     def __init__(self, nombre, cine):
-        super().__init__() 
+        super().__init__()
         self.nombre = nombre
         self.cine = cine
-
-#Agregacioin de codigo para simular la aleatoriedad dentro del sistmema 
-    def run(self):
-        # Simula que los clientes llegan en distintos momentos
-        time.sleep(rd.uniform(0.1, 1.5)) 
-        vio_pelicula = False
+        self.tiempo_visto = 0
+        self.veces_entrado = 0
+        self.quantum = 20 # Tiempo maximo de CPU por turno
         
-        for funcion in self.cine.funciones:
-            if vio_pelicula:
-                break
-                
-            print(f"[{self.nombre}] Entrando a buscar lugar en {funcion.nombre_funcion}...")
+    def log(self, mensaje):
+        texto = f"{self.cine.reloj.obtener_tiempo()} {mensaje}"
+        print(texto)
+        logging.info(texto)
+
+    def run(self):
+        self.log(f"[LISTO] {self.nombre} llego al cine y entro a la fila de espera.")
+
+        while not self.cine.reloj.pelicula_terminada.is_set():
+            # Intentar entrar usando el Semaforo. 
+            # El timeout evita que el hilo se quede congelado si la pelicula se acaba
+            adquirido = self.cine.semaforo.acquire(timeout=1.0)
             
-            # Mientras la función tenga asientos, intenta pescar uno al azar
-            while not funcion.esta_llena():
-                asiento_azar = funcion.obtener_asiento_aleatorio()
-                exito = funcion.intentar_reservar(asiento_azar, self.nombre)
+            if not adquirido:
+                continue 
                 
-                if exito:
-                    print(f"[{self.nombre}] EXITO Ocupando asiento {asiento_azar} en {funcion.nombre_funcion}")
-                    
-                    # FUERA DEL MUTEX: Aquí el usuario "ve la película" (Ocupa el recurso compartido)
-                    # Al estar fuera del candado, otros hilos pueden seguir comprando otros asientos
-                    time.sleep(rd.uniform(2.0, 4.0)) 
-                    
-                    # Termina la película, libera el asiento para otros 
-                    funcion.liberar_asiento(asiento_azar, self.nombre)
-                    print(f"[{self.nombre}] Terminó y liberó el asiento {asiento_azar} de {funcion.nombre_funcion}")
-                    vio_pelicula = True
+            if self.cine.reloj.pelicula_terminada.is_set():
+                self.cine.semaforo.release()
+                break
+
+            # --- ENTRA A LA SECCION CRITICA ---
+            asiento_idx = self.cine.ocupar_asiento(self.nombre)
+            self.veces_entrado += 1
+            self.log(f"[ASIGNACION] {self.nombre} ocupo el Asiento {asiento_idx + 1} (Visita #{self.veces_entrado}).")
+
+            va_al_bano = rd.random() < 0.5 # 50% de probabilidad de interrupcion voluntaria
+            
+            if va_al_bano:
+                tiempo_en_asiento = rd.randint(5, 15)
+            else:
+                tiempo_en_asiento = self.quantum
+
+            # Bucle de visualizacion segundo a segundo para poder cortar si se acaba el tiempo global
+            minutos_reales_vistos = 0
+            for _ in range(tiempo_en_asiento):
+                if self.cine.reloj.pelicula_terminada.is_set():
                     break
-                else:
-                    # Chocó con otro hilo por el mismo asiento, espera un microsegundo y reintenta
-                    time.sleep(rd.uniform(0.1, 0.3))
-                    
-        if not vio_pelicula:
-            print(f"[{self.nombre}] Me quedé sin entradas. Todas las funciones están llenas")
+                time.sleep(1) 
+                minutos_reales_vistos += 1
+                self.tiempo_visto += 1
+
+            # --- LIBERA LA SECCION CRITICA ---
+            self.cine.liberar_asiento(asiento_idx)
+            self.cine.semaforo.release()
+
+            if self.cine.reloj.pelicula_terminada.is_set():
+                break
+
+            # Procesamiento de la salida
+            if va_al_bano:
+                self.log(f"[I/O] {self.nombre} se levanto al bano. Libero Asiento {asiento_idx + 1}. Vio: {minutos_reales_vistos} min.")
+                tiempo_bano = rd.randint(5, 15)
+                for _ in range(tiempo_bano):
+                    if self.cine.reloj.pelicula_terminada.is_set():
+                        break
+                    time.sleep(1)
+                
+                if not self.cine.reloj.pelicula_terminada.is_set():
+                    self.log(f"[LISTO] {self.nombre} regreso del bano y se formo al final de la fila.")
+            else:
+                self.log(f"[EXPULSION] {self.nombre} alcanzo el limite de Quantum ({self.quantum} min). Fue enviado al final de la fila.")
