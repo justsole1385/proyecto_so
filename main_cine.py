@@ -6,7 +6,7 @@ from operator import attrgetter
 
 def main():
     print("\n========================================================")
-    print("                  RESERVAS DE CINE            ")
+    print("                  SIMULACIÓN DE CINE            ")
     print("========================================================\n")
     
     # Limpiamos el archivo de bitacora anterior
